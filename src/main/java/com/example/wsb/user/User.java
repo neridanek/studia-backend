@@ -1,5 +1,6 @@
 package com.example.wsb.user;
 
+import com.example.wsb.jobpost.JobPost;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -49,6 +50,9 @@ public abstract class User implements UserDetails {
 
     @Column
     private Role role;
+
+    @OneToMany(mappedBy = "employer", cascade = CascadeType.ALL)
+    private List<JobPost> jobPosts;
 
     public User(String firstName, String lastName, String password, String email, Role role) {
         this.firstName = firstName;

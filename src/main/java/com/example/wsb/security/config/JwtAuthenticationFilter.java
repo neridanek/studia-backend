@@ -2,6 +2,7 @@ package com.example.wsb.security.config;
 
 
 import com.example.wsb.user.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,30 +33,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
-        if (request.getServletPath().contains("/api/v1/auth")) {
+        if (request.getServletPath().contains("/api/v1")) {
             filterChain.doFilter(request, response);
             return;
         }
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            filterChain.doFilter(request,response);
+
+        jwt = authHeader.substring(7);
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
             return;
         }
-        jwt = authHeader.substring(7);
         System.out.println(jwt + " jwt!");
         username = jwtService.extractUsername(jwt);
-        if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if(jwtService.isTokenValid(jwt,userDetails)){
+            if (jwtService.isTokenValid(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,null,userDetails.getAuthorities());
+                        userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        if (jwt == null || !jwtService.isTokenValid(jwt, userDetails)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT");
+            return;
+        }
+        if (!response.isCommitted()) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT Token");
+            return;
+        }
         try {
             filterChain.doFilter(request, response);
-        }catch (AccessDeniedException e){
-            System.out.println(e + "Filter Error!2");
+        } catch (JwtException e) {
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+            }
+            return;
         }
     }
 

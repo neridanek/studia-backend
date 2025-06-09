@@ -1,6 +1,7 @@
 package com.example.wsb.jobpost;
 
 import com.example.wsb.user.User;
+import com.example.wsb.user.UserDTO;
 
 public record JobPostDTO(
         Integer jobId,
@@ -8,7 +9,7 @@ public record JobPostDTO(
         String description,
         String requirements,
         Integer salary,
-        User employer
+        UserDTO employer
 ) {
     public static JobPostDTO createFrom(JobPost jobPost) {
         return new JobPostDTO(
@@ -17,7 +18,7 @@ public record JobPostDTO(
                 jobPost.getDescription(),
                 jobPost.getRequirements(),
                 jobPost.getSalary(),
-                jobPost.getEmployer()
+                UserDTO.createFrom(jobPost.getEmployer())
         );
     }
 }
